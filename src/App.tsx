@@ -1,35 +1,67 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
+import React, { Suspense } from 'react';
+import { CountryList } from './components/CountryList';
+import { LoadingSpinner } from './components/LoadingSpinner';
 import './App.css';
+import { CO2Data } from './types/co2Data';
+import ErrorBoundary from './components/ErrorBoundary';
 
-function App() {
-  const [count, setCount] = useState(0);
+const CO2DataResource = (() => {
+  let promise: Promise<CO2Data> | null = null;
+  let result: CO2Data | null = null;
+  let error: Error | null = null;
 
+  return {
+    read() {
+      if (result) return result;
+      if (error) throw error;
+      if (!promise) {
+        promise = fetch(
+          'https://nyc3.digitaloceanspaces.com/owid-public/data/co2/owid-co2-data.json'
+        )
+          .then((response) => {
+            if (!response.ok) throw new Error('Failed to load data');
+            return response.json();
+          })
+          .then((data) => {
+            result = data;
+            return data;
+          })
+          .catch((err) => {
+            error = err;
+            throw err;
+          });
+      }
+      throw promise;
+    },
+  };
+})();
+
+const SuspenseCountryList = () => {
+  const data = CO2DataResource.read();
+  return <CountryList data={data} />;
+};
+
+export const App: React.FC = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  );
-}
+    <div className="app">
+      <header className="app-header">
+        <h1>CO2 Emissions Data by Country</h1>
+      </header>
 
-export default App;
+      <main className="app-main">
+        <ErrorBoundary
+          fallback={
+            <div className="error-container">
+              <h2>Error Loading Data</h2>
+              <p>Failed to load data</p>
+            </div>
+          }
+        >
+          <Suspense fallback={<LoadingSpinner />}>
+            <SuspenseCountryList />
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+    </div>
+  );
+};
