@@ -4,32 +4,27 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import './App.css';
 import { CO2Data } from './types/co2Data';
 import ErrorBoundary from './components/ErrorBoundary';
-
+import co2Data from './data.json';
 const CO2DataResource = (() => {
   let promise: Promise<CO2Data> | null = null;
   let result: CO2Data | null = null;
   let error: Error | null = null;
-
   return {
     read() {
       if (result) return result;
       if (error) throw error;
       if (!promise) {
-        promise = fetch(
-          'https://nyc3.digitaloceanspaces.com/owid-public/data/co2/owid-co2-data.json'
-        )
-          .then((response) => {
-            if (!response.ok) throw new Error('Failed to load data');
-            return response.json();
-          })
-          .then((data) => {
-            result = data;
-            return data;
-          })
-          .catch((err) => {
-            error = err;
-            throw err;
-          });
+        promise = new Promise((resolve, reject) => {
+          setTimeout(() => {
+            try {
+              result = co2Data as CO2Data;
+              resolve(co2Data as CO2Data);
+            } catch (err) {
+              error = err as Error;
+              reject(err);
+            }
+          }, 1000);
+        });
       }
       throw promise;
     },
