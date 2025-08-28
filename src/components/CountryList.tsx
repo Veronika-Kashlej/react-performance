@@ -1,4 +1,10 @@
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, {
+  Suspense,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { CO2Data } from '../types/co2Data';
 import { getAvailableYears, getLatestPopulation } from '../utils/dataUtils';
 import { DataTable } from './DataTable';
@@ -44,7 +50,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     return ['all', ...Array.from(regions).sort()];
   }, [data]);
 
-  const availableColumns = React.useMemo(() => {
+  const availableColumns = useMemo(() => {
     const columns = new Set<string>();
     Object.values(data).forEach((countryData) => {
       countryData.data.forEach((yearData) => {
@@ -63,17 +69,19 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     return Array.from(columns).sort();
   }, [data]);
 
-  const filteredCountries = Object.entries(data).filter(([country]) => {
-    const matchesSearch = country
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  const filteredCountries = useMemo(() => {
+    return Object.entries(data).filter(([country]) => {
+      const matchesSearch = country
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const countryRegion = country.charAt(0).toUpperCase();
-    const matchesRegion =
-      selectedRegion === 'all' || countryRegion === selectedRegion;
+      const countryRegion = country.charAt(0).toUpperCase();
+      const matchesRegion =
+        selectedRegion === 'all' || countryRegion === selectedRegion;
 
-    return matchesSearch && matchesRegion;
-  });
+      return matchesSearch && matchesRegion;
+    });
+  }, [data, searchTerm, selectedRegion]);
 
   const sortedCountries = useMemo(() => {
     return [...filteredCountries].sort(
@@ -128,29 +136,53 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     );
   }, [filteredCountries, sortBy, selectedYear]);
 
-  const handleColumnToggle = (column: string) => {
+  const memoizedSelectedColumns = useMemo(
+    () => selectedColumns,
+    [selectedColumns]
+  );
+
+  const handleColumnToggle = useCallback((column: string) => {
     setSelectedColumns((prev) =>
       prev.includes(column)
         ? prev.filter((col) => col !== column)
         : [...prev, column]
     );
-  };
+  }, []);
 
-  const handleYearChange = (year: number) => {
+  const handleYearChange = useCallback((year: number) => {
     setSelectedYear(year);
     setHighlightUpdate(true);
     setTimeout(() => {
       setHighlightUpdate(false);
     }, 2000);
-  };
+  }, []);
 
-  const handleRegionChange = (region: string) => {
+  const handleRegionChange = useCallback((region: string) => {
     setSelectedRegion(region);
-  };
+  }, []);
 
-  const handleSortChange = (option: SortOption) => {
+  const handleSortChange = useCallback((option: SortOption) => {
     setSortBy(option);
-  };
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    },
+    []
+  );
+
+  const handleModalToggle = useCallback(() => {
+    setIsModalOpen((prev) => !prev);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
+  const handleCountrySelect = useCallback((country: string) => {
+    setSelectedCountry((prev) => (prev === country ? null : country));
+  }, []);
 
   return (
     <div className="country-list-container">
@@ -160,7 +192,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
             type="text"
             placeholder="Search countries..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="search-input"
           />
         </div>
@@ -220,19 +252,16 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
           </div>
         </div>
 
-        <button
-          className="column-selector-button"
-          onClick={() => setIsModalOpen(true)}
-        >
+        <button className="column-selector-button" onClick={handleModalToggle}>
           Select Columns
         </button>
       </div>
 
       <ColumnSelectorModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleModalClose}
         availableColumns={availableColumns}
-        selectedColumns={selectedColumns}
+        selectedColumns={memoizedSelectedColumns}
         onColumnToggle={handleColumnToggle}
       />
 
@@ -267,11 +296,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
             >
               <div
                 className="country-header"
-                onClick={() =>
-                  setSelectedCountry(
-                    selectedCountry === country ? null : country
-                  )
-                }
+                onClick={() => handleCountrySelect(country)}
               >
                 <h3>{country}</h3>
                 <div className="country-info">
@@ -292,7 +317,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
                 <Suspense fallback={<SkeletonLoader />}>
                   <DataTable
                     data={countryData.data}
-                    additionalColumns={selectedColumns}
+                    additionalColumns={memoizedSelectedColumns}
                     selectedYear={selectedYear}
                   />
                 </Suspense>
