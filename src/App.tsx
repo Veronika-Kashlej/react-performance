@@ -4,7 +4,6 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import './App.css';
 import { CO2Data } from './types/co2Data';
 import ErrorBoundary from './components/ErrorBoundary';
-import co2Data from './data.json';
 const CO2DataResource = (() => {
   let promise: Promise<CO2Data> | null = null;
   let result: CO2Data | null = null;
@@ -14,17 +13,21 @@ const CO2DataResource = (() => {
       if (result) return result;
       if (error) throw error;
       if (!promise) {
-        promise = new Promise((resolve, reject) => {
-          setTimeout(() => {
-            try {
-              result = co2Data as CO2Data;
-              resolve(co2Data as CO2Data);
-            } catch (err) {
-              error = err as Error;
-              reject(err);
+        promise = fetch('/data.json')
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
             }
-          }, 1000);
-        });
+            return response.json();
+          })
+          .then((data) => {
+            result = data as CO2Data;
+            return data;
+          })
+          .catch((err) => {
+            error = err as Error;
+            throw err;
+          });
       }
       throw promise;
     },
