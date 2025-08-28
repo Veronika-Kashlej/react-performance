@@ -1,17 +1,16 @@
-import React from 'react';
 import './DataTable.css';
 import { AnnualData } from '@/types/co2Data';
 
 interface DataTableProps {
   data: AnnualData[];
-  countryName: string;
   additionalColumns?: string[];
+  selectedYear: number | null;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
   data,
-  countryName,
   additionalColumns = [],
+  selectedYear,
 }) => {
   const sortedData = [...data].sort((a, b) => b.year - a.year);
 
@@ -26,7 +25,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   const formatValue = (value: number | undefined) => {
     if (value == null) return 'N/A';
     if (typeof value === 'number') {
-      if (typeof value === 'number' && value >= 1000 && value <= 9999) {
+      if (value >= 1000 && value <= 9999) {
         return value.toString();
       }
       return value.toLocaleString();
@@ -34,9 +33,18 @@ export const DataTable: React.FC<DataTableProps> = ({
     return value;
   };
 
+  function scrollToYear() {
+    const element = document.querySelector('.selected-year-row');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
   return (
     <div className="data-table-container">
-      <h4>Annual Data for {countryName}</h4>
+      <button className="scroll-to-year-button" onClick={scrollToYear}>
+        Scroll to {selectedYear}
+      </button>
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -48,7 +56,10 @@ export const DataTable: React.FC<DataTableProps> = ({
           </thead>
           <tbody>
             {sortedData.map((row, index) => (
-              <tr key={index}>
+              <tr
+                key={index}
+                className={row.year === selectedYear ? 'selected-year-row' : ''}
+              >
                 {allColumns.map((column) => (
                   <td key={column}>{formatValue(row[column])}</td>
                 ))}

@@ -1,4 +1,4 @@
-import { AnnualData } from '../types/co2Data';
+import { AnnualData, CO2Data } from '../types/co2Data';
 
 export function getLatestPopulation(data: AnnualData[]): number | null {
   const yearsWithPopulation = data
@@ -49,3 +49,17 @@ export function getAvailableColumns(data: AnnualData[]): string[] {
 
   return Array.from(columns);
 }
+
+export const getAvailableYears = (data: CO2Data): number[] => {
+  const years = new Set<number>();
+
+  Object.values(data).forEach((countryData) => {
+    countryData.data.forEach((yearData) => {
+      if (yearData.year) {
+        years.add(yearData.year);
+      }
+    });
+  });
+
+  return Array.from(years).sort((a, b) => b - a); // Сортируем по убыванию
+};

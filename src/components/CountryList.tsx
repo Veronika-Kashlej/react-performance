@@ -1,6 +1,6 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { CO2Data } from '../types/co2Data';
-import { getLatestPopulation } from '../utils/dataUtils';
+import { getAvailableYears, getLatestPopulation } from '../utils/dataUtils';
 import { DataTable } from './DataTable';
 import { SkeletonLoader } from './LoadingSpinner';
 import { ColumnSelectorModal } from './ColumnSelectorModal';
@@ -15,6 +15,17 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [highlightUpdate, setHighlightUpdate] = useState(false);
+
+  useEffect(() => {
+    const years = getAvailableYears(data);
+    setAvailableYears(years);
+    if (years.length > 0 && !selectedYear) {
+      setSelectedYear(Math.max(...years));
+    }
+  }, [data, selectedYear]);
 
   const availableColumns = React.useMemo(() => {
     const columns = new Set<string>();
@@ -51,6 +62,15 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     );
   };
 
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    setHighlightUpdate(true);
+
+    setTimeout(() => {
+      setHighlightUpdate(false);
+    }, 2000);
+  };
+
   return (
     <div className="country-list-container">
       <div className="controls-container">
@@ -62,6 +82,24 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+        </div>
+
+        <div className="year-selector-container">
+          <label htmlFor="year-select" className="year-select-label">
+            Select Year:
+          </label>
+          <select
+            id="year-select"
+            value={selectedYear || ''}
+            onChange={(e) => handleYearChange(Number(e.target.value))}
+            className="year-select"
+          >
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
         </div>
 
         <button
@@ -83,9 +121,17 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
       <div className="countries-grid">
         {sortedCountries.map(([country, countryData]) => {
           const latestPopulation = getLatestPopulation(countryData.data);
+          const selectedYearData = selectedYear
+            ? countryData.data.find((d) => d.year === selectedYear)
+            : null;
+          const displayPopulation =
+            selectedYearData?.population ?? latestPopulation;
 
           return (
-            <div key={country} className="country-card">
+            <div
+              key={country}
+              className={`country-card ${highlightUpdate ? 'highlight' : ''}`}
+            >
               <div
                 className="country-header"
                 onClick={() =>
@@ -96,9 +142,14 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
               >
                 <h3>{country}</h3>
                 <div className="country-info">
-                  <span>ISO: {countryData.iso_code || 'N/A'}</span>
-                  <span>
-                    Population: {latestPopulation?.toLocaleString() || 'N/A'}
+                  <span className="iso-code">
+                    ISO: {countryData.iso_code || 'N/A'}
+                  </span>
+                  <span
+                    className={`population ${selectedYear ? 'year-highlight' : ''}`}
+                  >
+                    Population: {displayPopulation?.toLocaleString() || 'N/A'}
+                    {selectedYear && ` (${selectedYear})`}
                   </span>
                 </div>
               </div>
@@ -107,8 +158,8 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
                 <Suspense fallback={<SkeletonLoader />}>
                   <DataTable
                     data={countryData.data}
-                    countryName={country}
                     additionalColumns={selectedColumns}
+                    selectedYear={selectedYear}
                   />
                 </Suspense>
               )}
