@@ -10,6 +10,12 @@ interface CountryListProps {
   data: CO2Data;
 }
 
+type SortOption =
+  | 'name-asc'
+  | 'name-desc'
+  | 'population-asc'
+  | 'population-desc';
+
 export const CountryList: React.FC<CountryListProps> = ({ data }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
@@ -19,6 +25,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [highlightUpdate, setHighlightUpdate] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('name-asc');
 
   useEffect(() => {
     const years = getAvailableYears(data);
@@ -68,9 +75,58 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     return matchesSearch && matchesRegion;
   });
 
-  const sortedCountries = filteredCountries.sort(([a], [b]) =>
-    a.localeCompare(b)
-  );
+  const sortedCountries = useMemo(() => {
+    return [...filteredCountries].sort(
+      ([countryA, countryDataA], [countryB, countryDataB]) => {
+        switch (sortBy) {
+          case 'name-asc':
+            return countryA.localeCompare(countryB);
+
+          case 'name-desc':
+            return countryB.localeCompare(countryA);
+
+          case 'population-asc': {
+            const populationA = selectedYear
+              ? countryDataA.data.find((d) => d.year === selectedYear)
+                  ?.population
+              : getLatestPopulation(countryDataA.data);
+            const populationB = selectedYear
+              ? countryDataB.data.find((d) => d.year === selectedYear)
+                  ?.population
+              : getLatestPopulation(countryDataB.data);
+
+            if (populationA === undefined && populationB === undefined)
+              return 0;
+            if (populationA === undefined || populationA === null) return 1;
+            if (populationB === undefined || populationB === null) return -1;
+
+            return populationA - populationB;
+          }
+
+          case 'population-desc': {
+            const populationA = selectedYear
+              ? countryDataA.data.find((d) => d.year === selectedYear)
+                  ?.population
+              : getLatestPopulation(countryDataA.data);
+            const populationB = selectedYear
+              ? countryDataB.data.find((d) => d.year === selectedYear)
+                  ?.population
+              : getLatestPopulation(countryDataB.data);
+
+            if (populationA === undefined && populationB === undefined)
+              return 0;
+            if (populationA === undefined || populationA === null) return 1;
+            if (populationB === undefined || populationB === null) return -1;
+
+            return populationB - populationA;
+          }
+
+          default:
+            return countryA.localeCompare(countryB);
+        }
+      }
+    );
+  }, [filteredCountries, sortBy, selectedYear]);
 
   const handleColumnToggle = (column: string) => {
     setSelectedColumns((prev) =>
@@ -90,6 +146,10 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
 
   const handleRegionChange = (region: string) => {
     setSelectedRegion(region);
+  };
+
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option);
   };
 
   return (
@@ -141,6 +201,23 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
               ))}
             </select>
           </div>
+
+          <div className="sort-selector-container">
+            <label htmlFor="sort-select" className="sort-select-label">
+              Sort by:
+            </label>
+            <select
+              id="sort-select"
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
+              className="sort-select"
+            >
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="population-asc">Population (Low to High)</option>
+              <option value="population-desc">Population (High to Low)</option>
+            </select>
+          </div>
         </div>
 
         <button
@@ -166,6 +243,10 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
             Filtered by: Region {selectedRegion}
           </span>
         )}
+        <span className="sort-indicator">
+          Sorted by: {sortBy.includes('name') ? 'Name' : 'Population'} (
+          {sortBy.includes('asc') ? 'Ascending' : 'Descending'})
+        </span>
       </div>
 
       <div className="countries-grid">
