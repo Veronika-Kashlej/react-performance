@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { CO2Data } from '../types/co2Data';
 import { getAvailableYears, getLatestPopulation } from '../utils/dataUtils';
 import { DataTable } from './DataTable';
@@ -18,6 +18,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [highlightUpdate, setHighlightUpdate] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
 
   useEffect(() => {
     const years = getAvailableYears(data);
@@ -26,6 +27,15 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
       setSelectedYear(Math.max(...years));
     }
   }, [data, selectedYear]);
+
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    Object.keys(data).forEach((country) => {
+      const region = country.charAt(0).toUpperCase();
+      regions.add(region);
+    });
+    return ['all', ...Array.from(regions).sort()];
+  }, [data]);
 
   const availableColumns = React.useMemo(() => {
     const columns = new Set<string>();
@@ -46,9 +56,17 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
     return Array.from(columns).sort();
   }, [data]);
 
-  const filteredCountries = Object.entries(data).filter(([country]) =>
-    country.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCountries = Object.entries(data).filter(([country]) => {
+    const matchesSearch = country
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const countryRegion = country.charAt(0).toUpperCase();
+    const matchesRegion =
+      selectedRegion === 'all' || countryRegion === selectedRegion;
+
+    return matchesSearch && matchesRegion;
+  });
 
   const sortedCountries = filteredCountries.sort(([a], [b]) =>
     a.localeCompare(b)
@@ -65,10 +83,13 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
     setHighlightUpdate(true);
-
     setTimeout(() => {
       setHighlightUpdate(false);
     }, 2000);
+  };
+
+  const handleRegionChange = (region: string) => {
+    setSelectedRegion(region);
   };
 
   return (
@@ -84,22 +105,42 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
           />
         </div>
 
-        <div className="year-selector-container">
-          <label htmlFor="year-select" className="year-select-label">
-            Select Year:
-          </label>
-          <select
-            id="year-select"
-            value={selectedYear || ''}
-            onChange={(e) => handleYearChange(Number(e.target.value))}
-            className="year-select"
-          >
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+        <div className="filter-container">
+          <div className="year-selector-container">
+            <label htmlFor="year-select" className="year-select-label">
+              Select Year:
+            </label>
+            <select
+              id="year-select"
+              value={selectedYear || ''}
+              onChange={(e) => handleYearChange(Number(e.target.value))}
+              className="year-select"
+            >
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="region-selector-container">
+            <label htmlFor="region-select" className="region-select-label">
+              Filter by Region:
+            </label>
+            <select
+              id="region-select"
+              value={selectedRegion}
+              onChange={(e) => handleRegionChange(e.target.value)}
+              className="region-select"
+            >
+              {availableRegions.map((region) => (
+                <option key={region} value={region}>
+                  {region === 'all' ? 'All Regions' : `Region ${region}`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
@@ -118,6 +159,15 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
         onColumnToggle={handleColumnToggle}
       />
 
+      <div className="countries-info">
+        <p>Showing {sortedCountries.length} countries</p>
+        {selectedRegion !== 'all' && (
+          <span className="region-filter-indicator">
+            Filtered by: Region {selectedRegion}
+          </span>
+        )}
+      </div>
+
       <div className="countries-grid">
         {sortedCountries.map(([country, countryData]) => {
           const latestPopulation = getLatestPopulation(countryData.data);
@@ -126,6 +176,8 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
             : null;
           const displayPopulation =
             selectedYearData?.population ?? latestPopulation;
+
+          const countryRegion = country.charAt(0).toUpperCase();
 
           return (
             <div
@@ -145,6 +197,7 @@ export const CountryList: React.FC<CountryListProps> = ({ data }) => {
                   <span className="iso-code">
                     ISO: {countryData.iso_code || 'N/A'}
                   </span>
+                  <span className="region">Region: {countryRegion}</span>
                   <span
                     className={`population ${selectedYear ? 'year-highlight' : ''}`}
                   >
