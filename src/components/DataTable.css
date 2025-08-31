@@ -1,0 +1,102 @@
+.data-table-container {
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+}
+
+.table-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.table-controls select,
+.table-controls button {
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.table-controls select:focus,
+.table-controls button:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.column-selector-button {
+  background: var(--primary-gradient);
+  border: none !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.column-selector-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-primary);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-primary);
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+  position: sticky;
+  top: 0;
+}
+
+.data-table td {
+  color: var(--text-secondary);
+}
+
+.data-table tbody tr {
+  transition: var(--transition);
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.selected-year-row {
+  background-color: var(--bg-hover);
+  border-left: 4px solid #ffc107;
+  font-weight: bold;
+}
+
+.scroll-to-year-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.scroll-to-year-button:hover {
+  background-color: #1976d2;
+}

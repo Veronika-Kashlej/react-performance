@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/columnselectormodal.tsx","./src/components/countrylist.tsx","./src/components/datatable.tsx","./src/components/errorboundary.tsx","./src/components/loadingspinner.tsx","./src/types/co2data.ts","./src/utils/datautils.ts"],"version":"5.8.3"}
